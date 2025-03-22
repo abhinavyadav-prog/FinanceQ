@@ -1,0 +1,75 @@
+
+#bp-web-widget {
+  position: fixed !important;
+  bottom: 20px !important;
+  right: 20px !important;
+  z-index: 1000 !important;
+}
+#bp-web-widget iframe {
+  z-index: 1000 !important;
+}
+
+
+#bp-web-widget {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+
+
+#bp-web-widget button {
+  background-color: #4CAF50 !important;
+  border-color: #4CAF50 !important;
+}
+
+
+#bp-web-widget .bp-header {
+  background-color: #4CAF50 !important;
+}
+
+
+#bp-web-widget .bp-message {
+  background-color: #E8F5E9 !important;
+  color: #2E7D32 !important;
+}
+
+/* Customize the user messages */
+#bp-web-widget .bp-message.user {
+  background-color: #4CAF50 !important;
+  color: white !important;
+}
+
+
+#bp-web-widget .bp-input {
+  border-color: #4CAF50 !important;
+}
+
+
+#bp-web-widget .bp-send-button {
+  background-color: #4CAF50 !important;
+  color: white !important;
+}
+
+#bp-web-widget button::before {
+  content: "+" !important;
+  font-size: 24px !important;
+  font-weight: bold !important;
+  line-height: 1 !important;
+  display: block !important;
+  margin-bottom: 2px !important;
+}
+
+
+#bp-web-widget button img {
+  display: none !important;
+}
+
+
+#bp-web-widget button:hover {
+  background-color: #45a049 !important;
+  border-color: #45a049 !important;
+}
+
+#bp-web-widget .bp-send-button:hover {
+  background-color: #45a049 !important;
+} 
