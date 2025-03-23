@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { User, Star, Heart, Trophy, TrendingUp, Award, Target, Zap, Medal } from 'lucide-react';
+import { statsService, GameStats } from '../services/stats.service';
 
 interface ProfileProps {
   username: string;
@@ -9,13 +10,39 @@ interface ProfileProps {
   streak?: number;
 }
 
-const Profile: React.FC<ProfileProps> = ({ 
-  username, 
-  marks = 0, 
-  health = 100, 
-  rank = 'Beginner', 
-  streak = 0 
+const Profile: React.FC<ProfileProps> = ({
+  username,
+  marks = 0,
+  health = 100,
+  rank = 'Beginner',
+  streak = 0
 }) => {
+  const [stats, setStats] = useState<GameStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const userStats = await statsService.getUserStats();
+        setStats(userStats);
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  if (loading) {
+    return <div>Loading stats...</div>;
+  }
+
+  if (!stats) {
+    return <div>No stats available</div>;
+  }
+
   // Calculate level based on marks (every 1000 marks = 1 level)
   const level = Math.floor(marks / 1000) + 1;
   const nextLevelMarks = level * 1000;
@@ -36,18 +63,18 @@ const Profile: React.FC<ProfileProps> = ({
         </div>
         <h1 className="text-2xl font-bold text-gray-900">Profile</h1>
       </div>
-      
+
       <div className="space-y-4">
         <div>
           <h2 className="text-sm font-medium text-gray-500">Username</h2>
           <p className="mt-1 text-lg text-gray-900">{username}</p>
         </div>
-        
+
         <div>
           <h2 className="text-sm font-medium text-gray-500">Email</h2>
           <p className="mt-1 text-lg text-gray-900">{username}@example.com</p>
         </div>
-        
+
         <div>
           <h2 className="text-sm font-medium text-gray-500">Member Since</h2>
           <p className="mt-1 text-lg text-gray-900">January 1, 2024</p>
@@ -58,19 +85,19 @@ const Profile: React.FC<ProfileProps> = ({
           <div className="mt-2 grid grid-cols-2 gap-4">
             <div className="bg-gray-50 p-3 rounded-lg">
               <p className="text-sm text-gray-500">Marks</p>
-              <p className="text-lg font-semibold text-gray-900">{marks}</p>
+              <p className="text-lg font-semibold text-gray-900">{stats.gameStats.marks}</p>
             </div>
             <div className="bg-gray-50 p-3 rounded-lg">
               <p className="text-sm text-gray-500">Health</p>
-              <p className="text-lg font-semibold text-gray-900">{health}</p>
+              <p className="text-lg font-semibold text-gray-900">{stats.gameStats.health}</p>
             </div>
             <div className="bg-gray-50 p-3 rounded-lg">
               <p className="text-sm text-gray-500">Rank</p>
-              <p className="text-lg font-semibold text-gray-900">{rank}</p>
+              <p className="text-lg font-semibold text-gray-900">{stats.gameStats.rank}</p>
             </div>
             <div className="bg-gray-50 p-3 rounded-lg">
               <p className="text-sm text-gray-500">Streak</p>
-              <p className="text-lg font-semibold text-gray-900">{streak}</p>
+              <p className="text-lg font-semibold text-gray-900">{stats.gameStats.streak}</p>
             </div>
           </div>
         </div>
@@ -93,7 +120,7 @@ const Profile: React.FC<ProfileProps> = ({
             <span className="text-xl font-bold text-gray-800">Level {level}</span>
           </div>
           <div className="w-32 h-2 bg-gray-200 rounded-full mt-2">
-            <div 
+            <div
               className="h-2 bg-yellow-500 rounded-full transition-all duration-500"
               style={{ width: `${progressToNextLevel}%` }}
             ></div>
@@ -111,7 +138,7 @@ const Profile: React.FC<ProfileProps> = ({
             <h2 className="text-lg font-semibold text-gray-800">Marks</h2>
           </div>
           <div className="flex items-baseline">
-            <span className="text-3xl font-bold text-blue-600">{marks}</span>
+            <span className="text-3xl font-bold text-blue-600">{stats.gameStats.marks}</span>
             <span className="ml-2 text-gray-600">points</span>
           </div>
         </div>
@@ -123,7 +150,7 @@ const Profile: React.FC<ProfileProps> = ({
             <h2 className="text-lg font-semibold text-gray-800">Health</h2>
           </div>
           <div className="flex items-baseline">
-            <span className="text-3xl font-bold text-red-600">{health}</span>
+            <span className="text-3xl font-bold text-red-600">{stats.gameStats.health}</span>
             <span className="ml-2 text-gray-600">points</span>
           </div>
         </div>
@@ -135,7 +162,7 @@ const Profile: React.FC<ProfileProps> = ({
             <h2 className="text-lg font-semibold text-gray-800">Rank</h2>
           </div>
           <div className="flex items-baseline">
-            <span className="text-3xl font-bold text-yellow-600">#{rank}</span>
+            <span className="text-3xl font-bold text-yellow-600">#{stats.gameStats.rank}</span>
             <span className="ml-2 text-gray-600">in leaderboard</span>
           </div>
         </div>
@@ -147,7 +174,7 @@ const Profile: React.FC<ProfileProps> = ({
             <h2 className="text-lg font-semibold text-gray-800">Streak</h2>
           </div>
           <div className="flex items-baseline">
-            <span className="text-3xl font-bold text-green-600">{streak}</span>
+            <span className="text-3xl font-bold text-green-600">{stats.gameStats.streak}</span>
             <span className="ml-2 text-gray-600">days</span>
           </div>
         </div>
@@ -157,9 +184,9 @@ const Profile: React.FC<ProfileProps> = ({
       <div className="mt-8">
         <h3 className="text-lg font-semibold text-gray-800 mb-2">Health Status</h3>
         <div className="w-full bg-gray-200 rounded-full h-4">
-          <div 
+          <div
             className="bg-green-600 h-4 rounded-full transition-all duration-500"
-            style={{ width: `${(health / 100) * 100}%` }}
+            style={{ width: `${(stats.gameStats.health / 100) * 100}%` }}
           ></div>
         </div>
       </div>
@@ -169,13 +196,12 @@ const Profile: React.FC<ProfileProps> = ({
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Achievements</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {achievements.map((achievement, index) => (
-            <div 
+            <div
               key={index}
-              className={`p-4 rounded-lg ${
-                achievement.earned 
-                  ? 'bg-green-50 border border-green-200' 
+              className={`p-4 rounded-lg ${achievement.earned
+                  ? 'bg-green-50 border border-green-200'
                   : 'bg-gray-50 border border-gray-200'
-              }`}
+                }`}
             >
               <div className="flex items-center space-x-2 mb-2">
                 <div className={`${achievement.earned ? 'text-green-600' : 'text-gray-400'}`}>
@@ -188,6 +214,21 @@ const Profile: React.FC<ProfileProps> = ({
               <p className="text-sm text-gray-600">{achievement.description}</p>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Add new stats section */}
+      <div className="mt-6">
+        <h3 className="text-lg font-semibold mb-4">Performance Summary</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <p className="text-sm text-gray-600">Accuracy</p>
+            <p className="text-xl font-bold text-blue-600">{stats.summary.accuracy}%</p>
+          </div>
+          <div className="bg-green-50 p-4 rounded-lg">
+            <p className="text-sm text-gray-600">Questions Answered</p>
+            <p className="text-xl font-bold text-green-600">{stats.summary.totalQuestions}</p>
+          </div>
         </div>
       </div>
     </div>

@@ -7,16 +7,7 @@ import Rules from './components/Rules';
 import Profile from './components/Profile';
 import { Login } from './components/Login';
 import { Register } from './components/Register';
-import { IUser } from './models/User';
-
-// Mock user data
-const mockUserData = {
-  username: "John Doe",
-  marks: 750,
-  health: 85,
-  rank: 12,
-  streak: 5
-};
+import { AuthProvider } from './contexts/AuthContext';
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<'home' | 'rules' | 'game' | 'profile' | 'login' | 'register'>('home');
@@ -41,7 +32,7 @@ const App: React.FC = () => {
 
   const handleLogin = async (email: string, password: string) => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const response = await fetch('http://localhost:3000/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -49,23 +40,31 @@ const App: React.FC = () => {
         body: JSON.stringify({ email, password }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Login failed');
+        throw new Error(data.message || 'Login failed');
       }
 
-      const data = await response.json();
+      // Store the token and user data
       localStorage.setItem('token', data.token);
-      localStorage.setItem('username', data.username);
+      localStorage.setItem('username', data.user.username);
+
+      // Update the app state
       setIsAuthenticated(true);
-      setUsername(data.username);
+      setUsername(data.user.username);
+
+      // Navigate to the game page after successful login
+      setCurrentPage('game');
     } catch (error) {
-      throw error;
+      console.error('Login error:', error);
+      throw new Error(error instanceof Error ? error.message : 'Login failed. Please try again.');
     }
   };
 
   const handleRegister = async (username: string, email: string, password: string) => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const response = await fetch('http://localhost:3000/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -73,17 +72,25 @@ const App: React.FC = () => {
         body: JSON.stringify({ username, email, password }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Registration failed');
+        throw new Error(data.message || 'Registration failed');
       }
 
-      const data = await response.json();
+      // Store the token and user data
       localStorage.setItem('token', data.token);
-      localStorage.setItem('username', data.username);
+      localStorage.setItem('username', data.user.username);
+
+      // Update the app state
       setIsAuthenticated(true);
-      setUsername(data.username);
+      setUsername(data.user.username);
+
+      // Navigate to the game page after successful registration
+      setCurrentPage('game');
     } catch (error) {
-      throw error;
+      console.error('Registration error:', error);
+      throw new Error(error instanceof Error ? error.message : 'Registration failed. Please try again.');
     }
   };
 
@@ -103,6 +110,14 @@ const App: React.FC = () => {
     }
   };
 
+  const handleStartGame = () => {
+    if (!isAuthenticated) {
+      setCurrentPage('login');
+    } else {
+      setCurrentPage('game');
+    }
+  };
+
   const renderContent = () => {
     switch (currentPage) {
       case 'login':
@@ -110,14 +125,18 @@ const App: React.FC = () => {
       case 'register':
         return <Register onRegister={handleRegister} onNavigate={handleNavigate} />;
       case 'home':
-        return <HomePage onStartGame={() => setCurrentPage('game')} />;
+        return <HomePage onStartGame={handleStartGame} />;
       case 'rules':
         return <Rules />;
       case 'game':
-        return isAuthenticated ? <GameInterface /> : null;
+        if (!isAuthenticated) {
+          setCurrentPage('login');
+          return <Login onLogin={handleLogin} onNavigate={handleNavigate} />;
+        }
+        return <GameInterface />;
       case 'profile':
         return isAuthenticated && username ? (
-          <Profile 
+          <Profile
             username={username}
             marks={userStats.marks}
             health={userStats.health}
@@ -126,26 +145,28 @@ const App: React.FC = () => {
           />
         ) : null;
       default:
-        return <HomePage onStartGame={() => setCurrentPage('game')} />;
+        return <HomePage onStartGame={handleStartGame} />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#c0c0c0] flex flex-col">
-      <Navbar
-        onNavigate={handleNavigate}
-        currentPage={currentPage}
-        isAuthenticated={isAuthenticated}
-        username={username}
-        onLogout={handleLogout}
-      />
-      <main className="flex-grow container mx-auto px-4 py-8">
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          {renderContent()}
-        </div>
-      </main>
-      <Footer />
-    </div>
+    <AuthProvider>
+      <div className="min-h-screen bg-[#c0c0c0] flex flex-col">
+        <Navbar
+          onNavigate={handleNavigate}
+          currentPage={currentPage}
+          isAuthenticated={isAuthenticated}
+          username={username}
+          onLogout={handleLogout}
+        />
+        <main className="flex-grow container mx-auto px-4 py-8">
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            {renderContent()}
+          </div>
+        </main>
+        <Footer />
+      </div>
+    </AuthProvider>
   );
 };
 

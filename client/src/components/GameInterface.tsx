@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Heart, Trophy, TrendingUp, Star, Timer, Book, AlertCircle } from 'lucide-react';
 import type { Question, GameState } from '../types';
 import { getQuestions, getMoreQuestions } from '../data/questions';
+import { useAuth } from '../contexts/AuthContext';
+import { gameService } from '../services/game.service';
 
 const GameInterface: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>({
@@ -19,6 +21,7 @@ const GameInterface: React.FC = () => {
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [timeLeft, setTimeLeft] = useState(30);
   const [showContinueModal, setShowContinueModal] = useState(false);
+  const { token, user } = useAuth();
 
   const getRandomQuestion = () => {
     const unansweredQuestions = gameState.questions.filter(
@@ -62,20 +65,51 @@ const GameInterface: React.FC = () => {
     }
   }, [timeLeft, gameState.currentQuestion, showExplanation]);
 
-  const handleAnswer = (selectedIndex: number) => {
+  const saveGameProgress = async (isCorrect: boolean) => {
+    if (!gameState.currentQuestion) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Please log in to save your progress');
+        return;
+      }
+
+      const updatedStats = await gameService.saveGameProgress({
+        health: gameState.health,
+        score: gameState.score,
+        questionId: gameState.currentQuestion.id,
+        correct: isCorrect,
+        streak: gameState.streak
+      });
+
+      setGameState(prev => ({
+        ...prev,
+        rank: updatedStats.rank
+      }));
+    } catch (error) {
+      console.error('Error saving game progress:', error);
+      alert('Failed to save game progress. Please check your connection.');
+    }
+  };
+
+  const handleAnswer = async (selectedIndex: number) => {
     if (!gameState.currentQuestion || showExplanation) return;
-    
+
     setSelectedAnswer(selectedIndex);
     setShowExplanation(true);
 
     const isCorrect = selectedIndex === gameState.currentQuestion.correctAnswer;
     const healthChange = isCorrect ? 10 : -15;
-    const scoreChange = isCorrect ? 
-      (gameState.currentQuestion.difficulty === 'hard' ? 30 : 
-       gameState.currentQuestion.difficulty === 'medium' ? 20 : 10) : 0;
+    const scoreChange = isCorrect ?
+      (gameState.currentQuestion.difficulty === 'hard' ? 30 :
+        gameState.currentQuestion.difficulty === 'medium' ? 20 : 10) : 0;
 
     const newStreak = isCorrect ? gameState.streak + 1 : 0;
     const streakBonus = Math.floor(newStreak / 3) * 5;
+
+    // Save progress to server
+    await saveGameProgress(isCorrect);
 
     setTimeout(() => {
       setGameState(prev => ({
@@ -105,26 +139,24 @@ const GameInterface: React.FC = () => {
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="flex items-center space-x-3">
-              <Heart 
-                className={`w-6 h-6 ${
-                  gameState.health > 60 ? 'text-green-500' :
+              <Heart
+                className={`w-6 h-6 ${gameState.health > 60 ? 'text-green-500' :
                   gameState.health > 30 ? 'text-yellow-500' : 'text-red-500'
-                }`} 
+                  }`}
               />
               <div className="flex-1">
                 <div className="h-2 bg-gray-200 rounded-full">
-                  <div 
-                    className={`h-2 rounded-full transition-all duration-500 ${
-                      gameState.health > 60 ? 'bg-green-500' :
+                  <div
+                    className={`h-2 rounded-full transition-all duration-500 ${gameState.health > 60 ? 'bg-green-500' :
                       gameState.health > 30 ? 'bg-yellow-500' : 'bg-red-500'
-                    }`}
+                      }`}
                     style={{ width: `${gameState.health}%` }}
                   />
                 </div>
                 <span className="text-sm text-gray-600">{gameState.health}%</span>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-2">
               <Trophy className="w-6 h-6 text-yellow-500" />
               <div>
@@ -152,7 +184,7 @@ const GameInterface: React.FC = () => {
 
           {/* Timer */}
           <div className="w-full bg-gray-200 h-2 rounded-full mb-6">
-            <div 
+            <div
               className="h-2 bg-blue-500 rounded-full transition-all duration-1000"
               style={{ width: `${(timeLeft / 30) * 100}%` }}
             />
@@ -180,15 +212,14 @@ const GameInterface: React.FC = () => {
                     key={index}
                     onClick={() => handleAnswer(index)}
                     disabled={showExplanation}
-                    className={`p-4 text-left rounded-lg border transition-all duration-200 ${
-                      showExplanation
-                        ? index === gameState.currentQuestion!.correctAnswer
-                          ? 'bg-green-100 border-green-500'
-                          : index === selectedAnswer
+                    className={`p-4 text-left rounded-lg border transition-all duration-200 ${showExplanation
+                      ? index === gameState.currentQuestion!.correctAnswer
+                        ? 'bg-green-100 border-green-500'
+                        : index === selectedAnswer
                           ? 'bg-red-100 border-red-500'
                           : 'bg-gray-50 border-gray-200'
-                        : 'border-gray-200 hover:bg-blue-50 hover:border-blue-300'
-                    }`}
+                      : 'border-gray-200 hover:bg-blue-50 hover:border-blue-300'
+                      }`}
                   >
                     {option}
                   </button>
